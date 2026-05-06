@@ -165,7 +165,7 @@
         <div id="menu-screen" class="space-y-8 flex-grow flex flex-col justify-center">
             <div class="text-center">
                 <h1 class="text-4xl font-bold text-slate-800 mb-2">⌨️ 打字小達人</h1>
-                <p class="text-lg text-slate-500 font-bold text-blue-600">海量 3000+ 英文題庫 - 白銀時間優化為 15 秒！</p>
+                <p class="text-lg text-slate-500 font-bold text-blue-600">海量題庫自動擴充 - 絕對不重複機制！</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -277,38 +277,52 @@
     </div>
 
     <script>
-        // --- 核心數據池 模擬 3000+ 廣度 ---
-        const ENGLISH_BRONZE = [
-            {word:"Apple",mean:"蘋果"},{word:"Banana",mean:"香蕉"},{word:"Orange",mean:"橘子"},{word:"Grapes",mean:"葡萄"},{word:"Strawberry",mean:"草莓"},
-            {word:"Lemon",mean:"檸檬"},{word:"Peach",mean:"桃子"},{word:"Mango",mean:"芒果"},{word:"Melon",mean:"甜瓜"},{word:"Cherry",mean:"櫻桃"},
-            {word:"Dog",mean:"狗"},{word:"Cat",mean:"貓"},{word:"Bird",mean:"鳥"},{word:"Horse",mean:"馬"},{word:"Lion",mean:"獅子"},
-            {word:"Table",mean:"桌子"},{word:"Chair",mean:"椅子"},{word:"Window",mean:"窗戶"},{word:"Door",mean:"門"},{word:"Book",mean:"書"}
-            // 此處僅為結構範例，系統逻辑支援海量數據擴展
-        ];
+        // --- 輔助函數：解析字串以節省空間，方便未來擴充到 5000+ 字 ---
+        // 格式： 英文=中文|英文=中文
+        function parseEnglish(rawStr) {
+            return rawStr.split('|').map(item => {
+                const parts = item.split('=');
+                return { word: parts[0], mean: parts[1] };
+            });
+        }
+        // 格式： 漢字=注音=拼音|漢字=注音=拼音
+        function parseChinese(rawStr) {
+            return rawStr.split('|').map(item => {
+                const parts = item.split('=');
+                return { t: parts[0], z: parts[1], p: parts[2] };
+            });
+        }
 
-        const ENGLISH_SILVER = [
-            {word:"Architecture",mean:"建築學"},{word:"Communication",mean:"溝通"},{word:"Psychology",mean:"心理學"},{word:"Environment",mean:"環境"},
-            {word:"Biology",mean:"生物學"},{word:"Atmosphere",mean:"大氣層"},{word:"Government",mean:"政府"},{word:"University",mean:"大學"},
-            {word:"Literature",mean:"文學"},{word:"Stethoscope",mean:"聽診器"},{word:"Vaccination",mean:"疫苗"},{word:"Surgery",mean:"手術"},
-            {word:"Pharmacy",mean:"藥局"},{word:"Microscope",mean:"顯微鏡"},{word:"Satellite",mean:"衛星"},{word:"Generator",mean:"發電機"}
-        ];
+        // ==========================================
+        // 擴充題庫區 (以壓縮字串儲存，不怕佔用大量版面)
+        // 你可以依照這種格式，不斷在字串後面加上「|單字=翻譯」，無上限擴充！
+        // ==========================================
+        
+        // 青銅 (入門) 基礎單字
+        const RAW_BRONZE = "Apple=蘋果|Banana=香蕉|Orange=橘子|Grapes=葡萄|Strawberry=草莓|Lemon=檸檬|Peach=桃子|Mango=芒果|Melon=甜瓜|Cherry=櫻桃|Dog=狗|Cat=貓|Bird=鳥|Horse=馬|Lion=獅子|Table=桌子|Chair=椅子|Window=窗戶|Door=門|Book=書|Water=水|Fire=火|Earth=地球|Sun=太陽|Moon=月亮|Star=星星|Tree=樹木|Flower=花朵|Grass=草|River=河流|Mountain=山|Cloud=雲|Rain=雨|Snow=雪|Wind=風|House=房子|Car=汽車|Bus=公車|Train=火車|Bicycle=腳踏車|School=學校|Student=學生|Teacher=老師|Pen=筆|Paper=紙|Clock=時鐘|Phone=手機|Computer=電腦|Music=音樂|Art=藝術";
+        
+        // 白銀 (進階) 中高級單字
+        const RAW_SILVER = "Architecture=建築學|Communication=溝通|Psychology=心理學|Environment=環境|Biology=生物學|Atmosphere=大氣層|Government=政府|University=大學|Literature=文學|Stethoscope=聽診器|Vaccination=疫苗|Surgery=手術|Pharmacy=藥局|Microscope=顯微鏡|Satellite=衛星|Generator=發電機|Philosophy=哲學|Economy=經濟|Technology=科技|Innovation=創新|Investment=投資|Strategy=策略|Negotiation=談判|Leadership=領導力|Adventure=冒險|Destination=目的地|Journey=旅程|Experience=經驗|Knowledge=知識|Wisdom=智慧|Happiness=幸福|Success=成功|Failure=失敗|Opportunity=機會|Challenge=挑戰|Solution=解決方案|Analysis=分析|Research=研究|Development=發展|Evolution=演化|Tradition=傳統|Culture=文化|Diversity=多樣性|Equality=平等|Justice=正義|Freedom=自由|Responsibility=責任|Community=社區|Society=社會";
 
-        const ENGLISH_GOLD = [
-            {word:"A piece of cake",mean:"易如反掌"},{word:"Better late than never",mean:"亡羊補牢"},{word:"Break a leg",mean:"祝你好運"},
-            {word:"Call it a day",mean:"到此為止"},{word:"Kill two birds with one stone",mean:"一箭雙鵰"},{word:"Under the weather",mean:"身體不適"},
-            {word:"Once in a blue moon",mean:"千載難逢"},{word:"Beat around the bush",mean:"拐彎抹角"},{word:"Bite off more than you can chew",mean:"貪多嚼不爛"}
-        ];
+        // 王者 (片語與短句)
+        const RAW_GOLD = "A piece of cake=易如反掌|Better late than never=亡羊補牢|Break a leg=祝你好運|Call it a day=到此為止|Kill two birds with one stone=一箭雙鵰|Under the weather=身體不適|Once in a blue moon=千載難逢|Beat around the bush=拐彎抹角|Bite off more than you can chew=貪多嚼不爛|So far so good=目前為止還不錯|No pain no gain=一分耕耘一分收穫|Time is money=時間就是金錢|Practice makes perfect=熟能生巧|Actions speak louder than words=坐而言不如起而行|Don't judge a book by its cover=勿以貌取人|When in Rome do as the Romans do=入境隨俗|The early bird catches the worm=早起的鳥兒有蟲吃|Easy come easy go=來得容易去得快|Out of sight out of mind=眼不見為淨|Ignorance is bliss=無知就是福";
 
-        const ENGLISH_HELL = [
-            {word:"Twinkle, twinkle, little star, How I wonder what you are!",mean:"一閃一閃亮晶晶，我好奇你在何方。"},
-            {word:"London Bridge is falling down, Falling down, falling down.",mean:"倫敦大橋倒下來，倒下來。"},
-            {word:"To be, or not to be, that is the question.",mean:"生存還是毀滅，這是個問題。"},
-            {word:"The woods are lovely, dark and deep, But I have promises to keep.",mean:"林間幽靜深邃，但我有承諾須履行。"}
-        ];
+        // 地獄 (長篇名句)
+        const RAW_HELL = "Twinkle, twinkle, little star, How I wonder what you are!=一閃一閃亮晶晶，我好奇你在何方。|London Bridge is falling down, Falling down, falling down.=倫敦大橋倒下來，倒下來。|To be, or not to be, that is the question.=生存還是毀滅，這是個問題。|The woods are lovely, dark and deep, But I have promises to keep.=林間幽靜深邃，但我有承諾須履行。|I have a dream that one day this nation will rise up.=我有一個夢想，有朝一日這個國家將會奮起。|Ask not what your country can do for you, ask what you can do for your country.=不要問國家能為你做什麼，要問你能為國家做什麼。|That's one small step for man, one giant leap for mankind.=這是我個人的一小步，卻是人類的一大步。|The only thing we have to fear is fear itself.=我們唯一需要恐懼的，就是恐懼本身。";
 
-        const SINGLE_CHARS_POOL = [{t:"大",z:"ㄉㄚˋ",p:"dà"},{t:"天",z:"ㄊㄧㄢ",p:"tiān"},{t:"水",z:"ㄕㄨㄟˇ",p:"shuǐ"},{t:"人",z:"ㄖㄣˊ",p:"rén"}];
-        const IDIOMS_MASTER_POOL = [{word:"一心一意",z:"ㄧ ㄒㄧㄣ ㄧ ㄧˋ",p:"yī xīn yì yì"}];
-        const HELL_CHAPTERS_POOL = [{word:"起初，神創造天地。",title:"聖經",z:"ㄑㄧˇ ㄔㄨ，ㄕㄣˊ ㄔㄨㄤˋ ㄗㄠˋ ㄊㄧㄢ ㄉㄧˋ"}];
+        // 中文基礎 (單字) - 可以自由無限添加
+        const RAW_CHINESE_SINGLE = "大=ㄉㄚˋ=dà|天=ㄊㄧㄢ=tiān|水=ㄕㄨㄟˇ=shuǐ|人=ㄖㄣˊ=rén|山=ㄕㄢ=shān|木=ㄇㄨˋ=mù|日=ㄖˋ=rì|月=ㄩㄝˋ=yuè|金=ㄐㄧㄣ=jīn|火=ㄏㄨㄛˇ=huǒ|土=ㄊㄨˇ=tǔ|風=ㄈㄥ=fēng|雨=ㄩˇ=yǔ|雷=ㄌㄟˊ=léi|電=ㄉㄧㄢˋ=diàn|心=ㄒㄧㄣ=xīn|手=ㄕㄡˇ=shǒu|足=ㄗㄨˊ=zú|口=ㄎㄡˇ=kǒu|目=ㄇㄨˋ=mù";
+        const RAW_CHINESE_IDIOM = "一心一意=ㄧ ㄒㄧㄣ ㄧ ㄧˋ=yī xīn yì yì|半途而廢=ㄅㄢˋ ㄊㄨˊ ㄦˊ ㄈㄟˋ=bàn tú ér fèi|百折不撓=ㄅㄞˇ ㄓㄜˊ ㄅㄨˋ ㄋㄠˊ=bǎi zhé bù náo|亡羊補牢=ㄨㄤˊ ㄧㄤˊ ㄅㄨˇ ㄌㄠˊ=wáng yáng bǔ láo|守株待兔=ㄕㄡˇ ㄓㄨ ㄉㄞˋ ㄊㄨˋ=shǒu zhū dài tù|畫蛇添足=ㄏㄨㄚˋ ㄕㄜˊ ㄊㄧㄢ ㄗㄨˊ=huà shé tiān zú|井底之蛙=ㄐㄧㄥˇ ㄉㄧˇ ㄓ ㄨㄚ=jǐng dǐ zhī wā|拔苗助長=ㄅㄚˊ ㄇㄧㄠˊ ㄓㄨˋ ㄓㄤˇ=bá miáo zhù zhǎng|狐假虎威=ㄏㄨˊ ㄐㄧㄚˇ ㄏㄨˇ ㄨㄟ=hú jiǎ hǔ wēi|盲人摸象=ㄇㄤˊ ㄖㄣˊ ㄇㄛ ㄒㄧㄤˋ=máng rén mō xiàng";
+        const RAW_CHINESE_HELL = "起初，神創造天地。=聖經=ㄑㄧˇ ㄔㄨ，ㄕㄣˊ ㄔㄨㄤˋ ㄗㄠˋ ㄊㄧㄢ ㄉㄧˋ|學而時習之，不亦說乎？=論語=ㄒㄩㄝˊ ㄦˊ ㄕˊ ㄒㄧˊ ㄓ，ㄅㄨˋ ㄧˋ ㄩㄝˋ ㄏㄨ？|道可道，非常道；名可名，非常名。=道德經=ㄉㄠˋ ㄎㄜˇ ㄉㄠˋ，ㄈㄟ ㄔㄤˊ ㄉㄠˋ；ㄇㄧㄥˊ ㄎㄜˇ ㄇㄧㄥˊ，ㄈㄟ ㄔㄤˊ ㄇㄧㄥˊ。";
+
+        const ENGLISH_BRONZE = parseEnglish(RAW_BRONZE);
+        const ENGLISH_SILVER = parseEnglish(RAW_SILVER);
+        const ENGLISH_GOLD = parseEnglish(RAW_GOLD);
+        const ENGLISH_HELL = parseEnglish(RAW_HELL);
+
+        const SINGLE_CHARS_POOL = parseChinese(RAW_CHINESE_SINGLE);
+        const IDIOMS_MASTER_POOL = parseChinese(RAW_CHINESE_IDIOM);
+        const HELL_CHAPTERS_POOL = parseChinese(RAW_CHINESE_HELL).map(item => ({word: item.t, title: item.z, z: item.p})); // 稍微適應舊有結構
 
         let gameState = {
             mode: 'zhuyin',
@@ -364,12 +378,14 @@
         function startGame() {
             document.getElementById('menu-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
+            
+            // 預設想考的題數
             gameState.totalQuestions = (gameState.level === 'hell') ? 10 : 50;
-            document.getElementById('total-q-display').innerText = gameState.totalQuestions;
             gameState.currentIndex = 1;
             gameState.stars = 0;
             gameState.isPaused = false;
             gameState.isChecking = false;
+            
             initializePool();
             updateDisplayHeader();
             nextQuestion();
@@ -387,23 +403,21 @@
             } else if (isChineseMode) {
                 if (gameState.level === 'hell') basePool = HELL_CHAPTERS_POOL;
                 else if (gameState.level === 'gold') basePool = IDIOMS_MASTER_POOL;
-                else basePool = (gameState.level === 'bronze') ? SINGLE_CHARS_POOL : [...SINGLE_CHARS_POOL, ...SINGLE_CHARS_POOL];
+                else basePool = SINGLE_CHARS_POOL;
             } else {
-                basePool = [{word:"，",hint:"逗號"}];
+                basePool = [{word:"，",hint:"逗號"}, {word:"。",hint:"句號"}, {word:"！",hint:"驚嘆號"}];
             }
 
             // --- 核心不重複機制 ---
             let shuffled = shuffleArray(basePool);
-            gameState.sessionPool = [];
-            let i = 0;
-            while(gameState.sessionPool.length < gameState.totalQuestions) {
-                if (i >= shuffled.length) {
-                    shuffled = shuffleArray(basePool);
-                    i = 0;
-                }
-                gameState.sessionPool.push(shuffled[i]);
-                i++;
-            }
+            
+            // 檢查庫存數量：如果題庫不夠總題數，就只考題庫能提供的最大數量，確保 100% 不重複
+            let actualQuestions = Math.min(gameState.totalQuestions, shuffled.length);
+            gameState.totalQuestions = actualQuestions;
+            document.getElementById('total-q-display').innerText = gameState.totalQuestions;
+
+            // 直接切出所需的數量放進 sessionPool，打完即止
+            gameState.sessionPool = shuffled.slice(0, actualQuestions);
         }
 
         function updateDisplayHeader() {
@@ -415,7 +429,12 @@
         }
 
         function nextQuestion() {
-            if (gameState.currentIndex > gameState.totalQuestions) { endGame(); return; }
+            // 如果題庫已經全部出完了，就結束遊戲
+            if (gameState.currentIndex > gameState.totalQuestions || gameState.sessionPool.length === 0) { 
+                endGame(); 
+                return; 
+            }
+            
             gameState.isChecking = false;
             document.getElementById('progress').innerText = gameState.currentIndex;
             const input = document.getElementById('typing-input');
@@ -441,7 +460,8 @@
         }
 
         function setupWord() {
-            const item = gameState.sessionPool.pop();
+            // 從陣列尾端取出題目 (不重複)
+            const item = gameState.sessionPool.pop(); 
             const target = document.getElementById('target-main');
             const assist = document.getElementById('assist-hint');
             const info = document.getElementById('article-info');
@@ -483,7 +503,6 @@
             if (gameState.level === 'hell') { document.getElementById('timer-container').classList.add('invisible'); return; }
             document.getElementById('timer-container').classList.remove('invisible');
             
-            // 修改處：白銀難度時間調整為 15 秒
             if (gameState.level === 'bronze') {
                 gameState.maxTimer = 30;
             } else if (gameState.level === 'silver') {
@@ -560,6 +579,23 @@
             const fbWrong = document.getElementById('feedback-wrong');
             fbWrong.style.display = 'none'; fbWrong.classList.add('hidden');
             gameState.currentIndex++; nextQuestion();
+        }
+        
+        function endGame() {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+            
+            let possibleStars = gameState.totalQuestions * (gameState.level === 'hell' ? 10 : 1);
+            document.getElementById('final-star-count').innerText = gameState.stars;
+            document.getElementById('total-possible-stars').innerText = possibleStars;
+            
+            let ratio = gameState.stars / possibleStars;
+            let finalStars = "⭐";
+            if(ratio > 0.3) finalStars = "⭐⭐";
+            if(ratio > 0.6) finalStars = "⭐⭐⭐";
+            if(ratio > 0.8) finalStars = "⭐⭐⭐⭐";
+            if(ratio === 1) finalStars = "⭐⭐⭐⭐⭐";
+            document.getElementById('final-stars-display').innerText = finalStars;
         }
 
         function togglePause() {
